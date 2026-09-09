@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PlatformRole {
+  SUPER_ADMIN
+}
+
+enum UserRole {
+  ADMIN
+  BILLING_USER
+  ACCOUNTANT
+}
+
+model Tenant {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  subdomain    String?  @unique
+  customDomain String?  @unique
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  settings     TenantSettings?
+  memberships  TenantMembership[]
+}
+
+model TenantSettings {
+  id                  String   @id @default(cuid())
+  tenantId            String   @unique
+  legalName           String?
+  legalId             String?
+  businessAddress     String?
+  contactEmail        String?
+  contactPhone        String?
+  contactWhatsApp     String?
+  websiteUrl          String?
+  logoUrl             String?
+  emailLogoUrl        String?
+  primaryColor        String?
+  secondaryColor      String?
+  countryCode         String?  @db.VarChar(2)
+  defaultCurrencyCode String?  @db.VarChar(3)
+  timezone            String?  @db.VarChar(100)
+  locale              String?  @db.VarChar(20)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_settings")
+}
+
+model User {
+  id                 String   @id @default(cuid())
+  email              String   @unique
+  fullName           String
+  passwordHash       String
+  isActive           Boolean  @default(true)
+  mustChangePassword Boolean  @default(false)
+  activeJti          String?
+  activeAt           DateTime?
+  platformRole       PlatformRole?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  memberships        TenantMembership[]
+  passwordResetTokens PasswordResetToken[]
+}
+
+model TenantMembership {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  role      UserRole
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@index([tenantId])
+  @@index([userId])
+  @@index([tenantId, role])
+  @@map("tenant_memberships")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
+}

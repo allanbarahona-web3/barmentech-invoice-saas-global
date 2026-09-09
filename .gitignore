@@ -1,0 +1,74 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+**/dist/
+build/
+**/build/
+.next/
+**/.next/
+out/
+**/out/
+coverage/
+**/coverage/
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Logs
+*.log
+pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+.fleet/
+*.swp
+*.swo
+*~
+
+# Local/private documentation
+docs/**/*.md
+**/docs/**/*.md
+
+# Backups and database exports
+backup/
+backups/
+**/backup/
+**/backups/
+*.bak
+*.dump
+*.backup
+*.db
+*.sqlite
+*.sqlite3
+*.sql.*
+*.dump.*
+*.backup.*
+
+# Temporary files and caches
+.cache/
+**/.cache/
+.turbo/
+**/.turbo/
+.vite/
+**/.vite/
+.eslintcache
+tmp/
+temp/
+**/tmp/
+**/temp/
+*.tmp
+*.temp
