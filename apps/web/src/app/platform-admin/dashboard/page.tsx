@@ -26,9 +26,9 @@ export default function PlatformAdminDashboardPage() {
     }, []);
 
     const stats = useMemo(() => {
-        const active = tenants.filter((t) => t.status === "active").length;
-        const suspended = tenants.filter((t) => t.status === "suspended").length;
-        return { total: tenants.length, active, suspended };
+        const active = tenants.filter((tenant) => tenant.isActive).length;
+        const inactive = tenants.length - active;
+        return { total: tenants.length, active, inactive };
     }, [tenants]);
 
     const metrics = [
@@ -45,10 +45,10 @@ export default function PlatformAdminDashboardPage() {
             trend: { value: 0, label: "coming soon", positive: true },
         },
         {
-            label: "Suspended Tenants",
-            value: String(stats.suspended),
+            label: "Inactive Tenants",
+            value: String(stats.inactive),
             icon: <TrendingUp className="w-6 h-6 text-green-500" />,
-            trend: { value: stats.suspended, label: "need review", positive: false },
+            trend: { value: stats.inactive, label: "need review", positive: false },
         },
         {
             label: "System Health",

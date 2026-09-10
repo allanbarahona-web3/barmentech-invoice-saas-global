@@ -145,7 +145,7 @@ describe('Auth and tenant HTTP smoke tests', () => {
   it('logs in a super admin without tenant resolution', async () => {
     const response = await request(httpServer())
       .post('/auth/super-admin/login')
-      .set('Host', 'platform.test.local')
+      .set('Host', platformHost())
       .send({ email: superAdmin.email, password: superAdmin.password });
 
     expect(response.status).toBe(201);
@@ -155,6 +155,16 @@ describe('Auth and tenant HTTP smoke tests', () => {
       tenantId: null,
     });
     expect(response.body.user).not.toHaveProperty('activeJti');
+
+    const session = await getMe(response.body.accessToken, platformHost());
+
+    expect(session.status).toBe(200);
+    expect(session.body).toMatchObject({
+      id: superAdmin.id,
+      role: PlatformRole.SUPER_ADMIN,
+      tenantId: null,
+    });
+    expect(session.body).not.toHaveProperty('activeJti');
   });
 
   it('returns the tenant JWT identity from GET /auth/me', async () => {
@@ -180,8 +190,8 @@ describe('Auth and tenant HTTP smoke tests', () => {
     expect(response.status).toBe(401);
   });
 
-  it('rejects GET /auth/me with an invalid token', async () => {
-    const response = await getMe('not-a-jwt');
+  it('rejects GET /auth/me with an invalid token on the platform host', async () => {
+    const response = await getMe('not-a-jwt', platformHost());
 
     expect(response.status).toBe(401);
   });
@@ -308,6 +318,10 @@ describe('Auth and tenant HTTP smoke tests', () => {
     return `${subdomain}.test.local`;
   }
 
+  function platformHost(): string {
+    return 'platform.test.local';
+  }
+
   function httpServer() {
     if (!app) {
       throw new Error('HTTP test application is not initialized');
@@ -327,10 +341,10 @@ describe('Auth and tenant HTTP smoke tests', () => {
       .send({ email, password });
   }
 
-  function getMe(accessToken: string) {
+  function getMe(accessToken: string, host = tenantHost()) {
     return request(httpServer())
       .get('/auth/me')
-      .set('Host', tenantHost())
+      .set('Host', host)
       .set('Authorization', `Bearer ${accessToken}`);
   }
 });

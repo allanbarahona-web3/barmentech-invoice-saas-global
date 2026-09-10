@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FileText, Users, Package, Settings, LayoutDashboard, Sparkles, BarChart3, Wallet } from "lucide-react";
-import { useEffect, useState } from "react";
-import { getRole } from "@/lib/authContext";
+import { useMemo } from "react";
+import { isTenantRole, useAuth } from "@/lib/authContext";
 import { canAccess, Role } from "@/lib/rbacEngine";
 import { t } from "@/i18n";
 
@@ -55,26 +55,18 @@ const getSidebarLinks = () => [
 
 export function TenantSidebar() {
     const pathname = usePathname();
-    const sidebarLinks = getSidebarLinks();
-    const [visibleLinks, setVisibleLinks] = useState(sidebarLinks);
-    const [role, setRole] = useState<Role | null>(null);
-
-    useEffect(() => {
-        const userRole = getRole();
-        setRole(userRole);
+    const { role } = useAuth();
+    const rbacRole = isTenantRole(role) ? Role[role] : null;
+    const visibleLinks = useMemo(() => {
         const links = getSidebarLinks();
-
-        // Filter links based on role
-        const filtered = links.filter((link) =>
+        return links.filter((link) =>
             canAccess({
                 area: "system",
                 route: link.route,
-                role: userRole,
+                role: rbacRole,
             })
         );
-
-        setVisibleLinks(filtered);
-    }, []);
+    }, [rbacRole]);
 
     return (
         <aside className="w-64 border-r bg-background p-6 no-print flex flex-col h-screen sticky top-0">
@@ -84,9 +76,9 @@ export function TenantSidebar() {
                     <p className="text-xs text-muted-foreground">Invoice System</p>
                     {role && (
                         <p className="text-xs text-muted-foreground mt-1 font-medium">
-                            {role === "VIEWER" && "📖"}
+                            {role === "BILLING_USER" && "💳"}
                             {role === "ACCOUNTANT" && "📊"}
-                            {role === "TENANT_ADMIN" && "👤"}
+                            {role === "ADMIN" && "👤"}
                             {role}
                         </p>
                     )}
@@ -114,13 +106,6 @@ export function TenantSidebar() {
                     })}
                 </nav>
 
-                {role === Role.VIEWER && (
-                    <div className="rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 p-3">
-                        <p className="text-xs text-amber-800 dark:text-amber-200">
-                            You have <strong>view-only</strong> access to this workspace.
-                        </p>
-                    </div>
-                )}
             </div>
 
             {/* Premium Features Card - Fixed at bottom */}

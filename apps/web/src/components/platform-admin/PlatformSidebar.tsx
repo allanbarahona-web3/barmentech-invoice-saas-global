@@ -3,9 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Building2, Users, Package, FileText, Settings } from "lucide-react";
-import { useEffect, useState } from "react";
-import { getRole } from "@/lib/authContext";
-import { Role } from "@/lib/rbacEngine";
+import { useAuth } from "@/lib/authContext";
 import { t } from "@/i18n";
 
 const getSidebarLinks = () => [
@@ -44,21 +42,14 @@ const getSidebarLinks = () => [
 export function PlatformSidebar() {
     const pathname = usePathname();
     const sidebarLinks = getSidebarLinks();
-    const [role, setRole] = useState<Role | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        const userRole = getRole();
-        setRole(userRole);
-        setIsLoading(false);
-    }, []);
+    const { isLoading, role } = useAuth();
 
     // Only display sidebar if user is SUPER_ADMIN
     if (isLoading) {
         return <div className="w-64 border-r bg-background p-6"></div>;
     }
 
-    if (role !== Role.SUPER_ADMIN) {
+    if (role !== "SUPER_ADMIN") {
         return (
             <aside className="w-64 border-r bg-background p-6">
                 <div className="flex items-center justify-center h-full">

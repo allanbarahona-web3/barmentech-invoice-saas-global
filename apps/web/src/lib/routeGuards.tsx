@@ -1,10 +1,8 @@
 "use client";
 
-import { ReactNode, useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import { isAuthenticated, getRole, deleteAccessToken, deleteRole } from "./authContext";
-import { clearTenantContext } from "./tenantContext";
-import { Role, canAccess } from "./rbacEngine";
+import { ReactNode, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { isTenantRole, useAuth } from "./authContext";
 
 interface RouteGuardProps {
     children: ReactNode;
@@ -20,22 +18,23 @@ export function TenantSystemGuard({
     fallbackPath = "/login",
 }: RouteGuardProps) {
     const router = useRouter();
-    const pathname = usePathname();
-    const [isAuthed, setIsAuthed] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
+    const { isAuthenticated, isLoading, role } = useAuth();
+    const isAuthorized = isAuthenticated && isTenantRole(role);
 
     useEffect(() => {
-        const authenticated = isAuthenticated();
-
-        if (!authenticated) {
-            // Store the intended destination
-            sessionStorage.setItem("redirectAfterLogin", pathname);
-            router.push(fallbackPath);
+        if (isLoading) {
+            return;
         }
 
-        setIsAuthed(authenticated);
-        setIsLoading(false);
-    }, [router, pathname, fallbackPath]);
+        if (!isAuthenticated) {
+            router.replace(fallbackPath);
+            return;
+        }
+
+        if (!isTenantRole(role)) {
+            router.replace("/platform-admin/dashboard");
+        }
+    }, [fallbackPath, isAuthenticated, isLoading, role, router]);
 
     if (isLoading) {
         return (
@@ -45,7 +44,7 @@ export function TenantSystemGuard({
         );
     }
 
-    if (!isAuthed) {
+    if (!isAuthorized) {
         return null;
     }
 
@@ -62,33 +61,26 @@ export function PlatformAdminGuard({
     fallbackPath = "/login",
 }: RouteGuardProps) {
     const router = useRouter();
-    const pathname = usePathname();
-    const [isAuthorized, setIsAuthorized] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
+    const { isAuthenticated, isLoading, role } = useAuth();
+    const isAuthorized = isAuthenticated && role === "SUPER_ADMIN";
 
     useEffect(() => {
-        const authenticated = isAuthenticated();
-        const role = getRole();
+        if (isLoading) {
+            return;
+        }
 
         // Not authenticated
-        if (!authenticated) {
-            sessionStorage.setItem("redirectAfterLogin", pathname);
-            router.push(fallbackPath);
-            setIsLoading(false);
+        if (!isAuthenticated) {
+            router.replace(fallbackPath);
             return;
         }
 
         // Has authentication but not SUPER_ADMIN role
-        if (role !== Role.SUPER_ADMIN) {
-            router.push("/system/dashboard");
-            setIsLoading(false);
+        if (role !== "SUPER_ADMIN") {
+            router.replace("/system/dashboard");
             return;
         }
-
-        // Authorized
-        setIsAuthorized(true);
-        setIsLoading(false);
-    }, [router, pathname, fallbackPath]);
+    }, [fallbackPath, isAuthenticated, isLoading, role, router]);
 
     if (isLoading) {
         return (

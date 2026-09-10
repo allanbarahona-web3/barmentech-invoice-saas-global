@@ -25,8 +25,8 @@ model Tenant {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  settings     TenantSettings?
-  memberships  TenantMembership[]
+  settings    TenantSettings?
+  memberships TenantMembership[]
 }
 
 model TenantSettings {
@@ -56,19 +56,19 @@ model TenantSettings {
 }
 
 model User {
-  id                 String   @id @default(cuid())
-  email              String   @unique
+  id                 String        @id @default(cuid())
+  email              String        @unique
   fullName           String
   passwordHash       String
-  isActive           Boolean  @default(true)
-  mustChangePassword Boolean  @default(false)
+  isActive           Boolean       @default(true)
+  mustChangePassword Boolean       @default(false)
   activeJti          String?
   activeAt           DateTime?
   platformRole       PlatformRole?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
-  memberships        TenantMembership[]
+  memberships         TenantMembership[]
   passwordResetTokens PasswordResetToken[]
 }
 
@@ -92,12 +92,12 @@ model TenantMembership {
 }
 
 model PasswordResetToken {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
-  token     String   @unique
+  token     String    @unique
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

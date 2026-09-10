@@ -25,18 +25,3 @@ export function formatDate(date: string): string {
     day: "numeric",
   }).format(new Date(date));
 }
-
-/**
- * Handle logout: clear auth context, tenant context, and redirect
- */
-export function performLogout(router: { push: (path: string) => void }) {
-  if (typeof window !== "undefined") {
-    // Dynamic imports to avoid circular dependencies
-    const { clearAuthContext } = require("@/lib/authContext");
-    const { clearTenantContext } = require("@/lib/tenantContext");
-    
-    clearAuthContext();
-    clearTenantContext();
-  }
-  router.push("/login");
-}

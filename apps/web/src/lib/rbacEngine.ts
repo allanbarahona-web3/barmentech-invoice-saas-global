@@ -7,9 +7,9 @@
 
 export enum Role {
     SUPER_ADMIN = "SUPER_ADMIN",
-    TENANT_ADMIN = "TENANT_ADMIN",
+    ADMIN = "ADMIN",
+    BILLING_USER = "BILLING_USER",
     ACCOUNTANT = "ACCOUNTANT",
-    VIEWER = "VIEWER",
 }
 
 export type Area = "system" | "platform-admin";
@@ -24,21 +24,19 @@ interface PermissionRule {
 const permissionMatrix: Record<Area, PermissionRule> = {
     system: {
         dashboard: [
-            Role.SUPER_ADMIN,
-            Role.TENANT_ADMIN,
+            Role.ADMIN,
+            Role.BILLING_USER,
             Role.ACCOUNTANT,
-            Role.VIEWER,
         ],
-        invoices: [Role.SUPER_ADMIN, Role.TENANT_ADMIN, Role.ACCOUNTANT],
-        customers: [Role.SUPER_ADMIN, Role.TENANT_ADMIN, Role.ACCOUNTANT],
-        products: [Role.SUPER_ADMIN, Role.TENANT_ADMIN, Role.ACCOUNTANT],
+        invoices: [Role.ADMIN, Role.BILLING_USER, Role.ACCOUNTANT],
+        customers: [Role.ADMIN, Role.BILLING_USER, Role.ACCOUNTANT],
+        products: [Role.ADMIN, Role.BILLING_USER, Role.ACCOUNTANT],
         reports: [
-            Role.SUPER_ADMIN,
-            Role.TENANT_ADMIN,
+            Role.ADMIN,
+            Role.BILLING_USER,
             Role.ACCOUNTANT,
-            Role.VIEWER,
         ],
-        settings: [Role.SUPER_ADMIN, Role.TENANT_ADMIN],
+        settings: [Role.ADMIN, Role.BILLING_USER, Role.ACCOUNTANT],
     },
     "platform-admin": {
         dashboard: [Role.SUPER_ADMIN],
@@ -144,9 +142,9 @@ export function getAccessibleFeatures(role: Role | null): {
 export function getRoleDisplayName(role: Role): string {
     const names: Record<Role, string> = {
         [Role.SUPER_ADMIN]: "Super Admin",
-        [Role.TENANT_ADMIN]: "Tenant Admin",
+        [Role.ADMIN]: "Admin",
+        [Role.BILLING_USER]: "Billing User",
         [Role.ACCOUNTANT]: "Accountant",
-        [Role.VIEWER]: "Viewer",
     };
     return names[role];
 }

@@ -10,26 +10,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Search, ChevronDown, LogOut, User, Settings } from "lucide-react";
-import { getTenantSlug } from "@/lib/tenantContext";
-import { clearAuthContext } from "@/lib/authContext";
-import { clearTenantContext } from "@/lib/tenantContext";
+import { useAuth } from "@/lib/authContext";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
-import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
 import { t } from "@/i18n";
 import Link from "next/link";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 
 export function TenantHeader() {
     const router = useRouter();
-    const [tenantSlug, setTenantSlug] = useState<string | null>(null);
+    const { logout, tenantName, user } = useAuth();
 
-    useEffect(() => {
-        setTenantSlug(getTenantSlug());
-    }, []);
-
-    const handleLogout = () => {
-        clearAuthContext();
-        clearTenantContext();
+    const handleLogout = async () => {
+        await logout();
         router.push("/login");
     };
 
@@ -49,10 +41,12 @@ export function TenantHeader() {
                         />
                     </div>
 
+                    <ThemeToggle />
+
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="outline" size="sm" className="gap-2">
-                                {tenantSlug || "Tenant"}
+                                {tenantName || "Tenant"}
                                 <ChevronDown className="w-4 h-4" />
                             </Button>
                         </DropdownMenuTrigger>
@@ -62,7 +56,7 @@ export function TenantHeader() {
                                     CURRENT TENANT
                                 </p>
                                 <p className="text-sm font-medium truncate">
-                                    {tenantSlug}
+                                    {tenantName || "Tenant"}
                                 </p>
                             </div>
                             <DropdownMenuSeparator />
@@ -80,7 +74,7 @@ export function TenantHeader() {
                                 className="rounded-full w-10 h-10 p-0"
                             >
                                 <div className="w-full h-full rounded-full bg-muted flex items-center justify-center text-sm font-semibold">
-                                    U
+                                    {user?.fullName.slice(0, 1).toUpperCase() || "U"}
                                 </div>
                             </Button>
                         </DropdownMenuTrigger>
@@ -109,4 +103,3 @@ export function TenantHeader() {
         </header>
     );
 }
-

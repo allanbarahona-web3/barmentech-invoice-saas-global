@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { t } from "@/i18n";
+import axios from "axios";
+import { useCallback, useEffect, useState } from "react";
 
 import {
     Table,
@@ -20,72 +20,43 @@ import {
     PlatformTenant,
 } from "@/services/platformAdminService";
 
-function getStatusBadge(status: PlatformTenant["status"]) {
-    const colors = {
-        active: "bg-green-100 text-green-800",
-        trial: "bg-blue-100 text-blue-800",
-        suspended: "bg-red-100 text-red-800",
-        cancelled: "bg-gray-100 text-gray-800",
-    };
-    return colors[status];
+function getStatusBadge(isActive: boolean) {
+    return isActive
+        ? "bg-green-100 text-green-800"
+        : "bg-red-100 text-red-800";
 }
 
 export function TenantManagementTable() {
     const [tenants, setTenants] = useState<PlatformTenant[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [actionId, setActionId] = useState<number | null>(null);
     const { toast } = useToast();
 
-    const fetchTenants = async () => {
+    const fetchTenants = useCallback(async () => {
         setIsLoading(true);
         try {
             const data = await platformAdminService.listTenants();
             setTenants(data);
-        } catch {
+        } catch (error) {
+            if (axios.isAxiosError(error) && error.response?.status === 401) {
+                return;
+            }
+
             toast({
                 title: "Error",
-                description: "No se pudieron cargar los tenants",
+                description:
+                    axios.isAxiosError(error) && error.response?.status === 403
+                        ? "No tienes acceso a los tenants de la plataforma"
+                        : "No se pudieron cargar los tenants",
                 variant: "destructive",
             });
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [toast]);
 
     useEffect(() => {
-        fetchTenants();
-    }, []);
-
-    const toggleTenantStatus = async (tenant: PlatformTenant) => {
-        setActionId(tenant.id);
-        try {
-            if (tenant.status === "suspended") {
-                await platformAdminService.activateTenant(tenant.id);
-            } else {
-                await platformAdminService.suspendTenant(
-                    tenant.id,
-                    "Suspension triggered from platform admin FE",
-                );
-            }
-
-            await fetchTenants();
-            toast({
-                title: "Éxito",
-                description:
-                    tenant.status === "suspended"
-                        ? "Tenant activado"
-                        : "Tenant suspendido",
-            });
-        } catch {
-            toast({
-                title: "Error",
-                description: "No se pudo actualizar el estado del tenant",
-                variant: "destructive",
-            });
-        } finally {
-            setActionId(null);
-        }
-    };
+        void fetchTenants();
+    }, [fetchTenants]);
 
     return (
         <Card className="p-6">
@@ -107,11 +78,11 @@ export function TenantManagementTable() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Tenant Name</TableHead>
-                                <TableHead>Slug</TableHead>
+                                <TableHead>Domain</TableHead>
                                 <TableHead>Country</TableHead>
                                 <TableHead>Status</TableHead>
                                 <TableHead>Created</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
+                                <TableHead>Updated</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -137,32 +108,22 @@ export function TenantManagementTable() {
                                         {tenant.name}
                                     </TableCell>
                                     <TableCell className="text-muted-foreground">
-                                        {tenant.slug}
+                                        {tenant.customDomain || tenant.subdomain || "-"}
                                     </TableCell>
                                     <TableCell>{tenant.countryCode || "-"}</TableCell>
                                     <TableCell>
                                         <Badge
                                             variant="outline"
-                                            className={getStatusBadge(tenant.status)}
+                                            className={getStatusBadge(tenant.isActive)}
                                         >
-                                            {tenant.status.charAt(0).toUpperCase() +
-                                                tenant.status.slice(1)}
+                                            {tenant.isActive ? "Active" : "Inactive"}
                                         </Badge>
                                     </TableCell>
                                     <TableCell>
                                         {new Date(tenant.createdAt).toLocaleDateString()}
                                     </TableCell>
-                                    <TableCell className="text-right">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            disabled={actionId === tenant.id}
-                                            onClick={() => toggleTenantStatus(tenant)}
-                                        >
-                                            {tenant.status === "suspended"
-                                                ? "Activate"
-                                                : "Suspend"}
-                                        </Button>
+                                    <TableCell>
+                                        {new Date(tenant.updatedAt).toLocaleDateString()}
                                     </TableCell>
                                 </TableRow>
                             ))}

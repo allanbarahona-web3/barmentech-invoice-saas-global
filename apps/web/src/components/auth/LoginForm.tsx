@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
@@ -18,22 +18,21 @@ import {
 import { loginSchema, type LoginFormData } from "@/schemas/login.schema";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks";
-import { setAccessToken, setRole } from "@/lib/authContext";
-import { setTenantContext } from "@/lib/tenantContext";
-import { Role } from "@/lib/rbacEngine";
+import { useAuth } from "@/lib/authContext";
 import { t } from "@/i18n";
-import { hasTwoFactorEnabled } from "@/modules/auth/twoFactor.storage";
-import { TwoFactorVerifyDialog } from "@/modules/auth/components/TwoFactorVerifyDialog";
 
 export function LoginForm() {
     const router = useRouter();
     const { toast } = useToast();
-    const formMountTime = useRef<number>(0);
-    const [show2FADialog, setShow2FADialog] = useState(false);
-    const [pendingEmail, setPendingEmail] = useState("");
+    const { login } = useAuth();
+    const [isHumanReady, setIsHumanReady] = useState(false);
 
     useEffect(() => {
-        formMountTime.current = Date.now();
+        const timer = window.setTimeout(() => {
+            setIsHumanReady(true);
+        }, 1500);
+
+        return () => window.clearTimeout(timer);
     }, []);
 
     const form = useForm<LoginFormData>({
@@ -53,25 +52,16 @@ export function LoginForm() {
         }
 
         // Anti-bot: human delay check
-        const timeElapsed = Date.now() - formMountTime.current;
-        if (timeElapsed < 1500) {
+        if (!isHumanReady) {
             // Too fast, likely a bot
             return;
         }
 
         try {
-            // Check if user has 2FA enabled
-            if (hasTwoFactorEnabled(data.email)) {
-                // Store pending data and show 2FA dialog
-                setPendingEmail(data.email);
-                setShow2FADialog(true);
-                return;
-            }
-
-            // Complete login without 2FA
-            completeLogin();
+            await login({ email: data.email, password: data.password });
+            router.push("/system/dashboard");
             form.reset();
-        } catch (error) {
+        } catch {
             // Generic error message to prevent user enumeration
             toast({
                 title: "Error",
@@ -79,38 +69,6 @@ export function LoginForm() {
                 variant: "destructive",
             });
         }
-    };
-
-    const completeLogin = () => {
-        setAccessToken(globalThis.crypto.randomUUID());
-        setRole(Role.TENANT_ADMIN);
-        setTenantContext(
-            globalThis.crypto.randomUUID(),
-            `tenant-${globalThis.crypto.randomUUID()}`,
-        );
-
-        toast({
-            title: "Inicio exitoso",
-            description: "Bienvenido de vuelta",
-        });
-
-        router.push("/system/dashboard");
-    };
-
-    const handle2FAVerified = () => {
-        setShow2FADialog(false);
-        completeLogin();
-        form.reset();
-    };
-
-    const handle2FACancel = () => {
-        setShow2FADialog(false);
-        setPendingEmail("");
-        toast({
-            title: "Inicio de sesión cancelado",
-            description: "Se requiere verificación 2FA para continuar",
-            variant: "destructive",
-        });
     };
 
     return (
@@ -193,14 +151,6 @@ export function LoginForm() {
                     </Link>
                 </p>
             </form>
-
-            <TwoFactorVerifyDialog
-                open={show2FADialog}
-                onOpenChange={setShow2FADialog}
-                email={pendingEmail}
-                onVerified={handle2FAVerified}
-                onCancel={handle2FACancel}
-            />
         </Form>
     );
 }

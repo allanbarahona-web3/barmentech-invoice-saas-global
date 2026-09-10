@@ -15,6 +15,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { RLSInterceptor } from './common/interceptors/rls.interceptor';
 import { PrismaModule } from './prisma/prisma.module';
+import { PlatformModule } from './platform/platform.module';
 import { TenantMiddleware } from './tenant/tenant.middleware';
 import { TenantModule } from './tenant/tenant.module';
 
@@ -35,6 +36,7 @@ import { TenantModule } from './tenant/tenant.module';
     PrismaModule,
     TenantModule,
     AuthModule,
+    PlatformModule,
   ],
   controllers: [AppController],
   providers: [
@@ -56,6 +58,14 @@ export class AppModule implements NestModule {
       .exclude({
         path: 'auth/super-admin/login',
         method: RequestMethod.POST,
+      })
+      .exclude({
+        path: 'auth/me',
+        method: RequestMethod.GET,
+      })
+      .exclude({
+        path: 'v1/platform/tenants',
+        method: RequestMethod.GET,
       })
       .forRoutes('*');
   }

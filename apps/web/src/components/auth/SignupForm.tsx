@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
@@ -17,19 +17,18 @@ import {
 } from "@/components/ui/form";
 import { signupSchema, type SignupFormData } from "@/schemas/signup.schema";
 import { useToast } from "@/hooks";
-import { setAccessToken, setRole } from "@/lib/authContext";
-import { setTenantContext } from "@/lib/tenantContext";
-import { useRouter } from "next/navigation";
-import { Role } from "@/lib/rbacEngine";
 import { t } from "@/i18n";
 
 export function SignupForm() {
     const { toast } = useToast();
-    const router = useRouter();
-    const formMountTime = useRef<number>(0);
+    const [isHumanReady, setIsHumanReady] = useState(false);
 
     useEffect(() => {
-        formMountTime.current = Date.now();
+        const timer = window.setTimeout(() => {
+            setIsHumanReady(true);
+        }, 1500);
+
+        return () => window.clearTimeout(timer);
     }, []);
 
     const form = useForm<SignupFormData>({
@@ -51,46 +50,16 @@ export function SignupForm() {
         }
 
         // Anti-bot: human delay check
-        const timeElapsed = Date.now() - formMountTime.current;
-        if (timeElapsed < 1500) {
+        if (!isHumanReady) {
             // Too fast, likely a bot
             return;
         }
 
-        try {
-            // Simulated backend call
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            
-            // Simulate token and tenant context generation
-            const mockToken = globalThis.crypto.randomUUID();
-            setAccessToken(mockToken);
-            
-            // New signup users get TENANT_ADMIN role by default
-            setRole(Role.TENANT_ADMIN);
-            
-            // Set tenant context for new user
-            setTenantContext(
-                globalThis.crypto.randomUUID(),
-                `tenant-${globalThis.crypto.randomUUID()}`,
-            );
-            
-            toast({
-                title: "Cuenta creada",
-                description: "Bienvenido a la plataforma",
-            });
-            
-            form.reset();
-            
-            // Redirect to system dashboard
-            router.push("/system/dashboard");
-        } catch (error) {
-            // Generic error message to prevent user enumeration
-            toast({
-                title: "Error",
-                description: t().auth.createAccountError,
-                variant: "destructive",
-            });
-        }
+        toast({
+            title: "Error",
+            description: t().auth.createAccountError,
+            variant: "destructive",
+        });
     };
 
     return (

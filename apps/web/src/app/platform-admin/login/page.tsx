@@ -18,10 +18,7 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { useToast } from "@/hooks";
-import { platformAdminService } from "@/services/platformAdminService";
-import { setAccessToken, setRefreshToken, setRole } from "@/lib/authContext";
-import { clearTenantContext } from "@/lib/tenantContext";
-import { Role } from "@/lib/rbacEngine";
+import { useAuth } from "@/lib/authContext";
 
 const schema = z.object({
     email: z.string().email("Email inválido"),
@@ -33,6 +30,7 @@ type FormValues = z.infer<typeof schema>;
 export default function PlatformLoginPage() {
     const router = useRouter();
     const { toast } = useToast();
+    const { superAdminLogin } = useAuth();
     const mountTime = useRef(Date.now());
     const [submitting, setSubmitting] = useState(false);
 
@@ -50,12 +48,11 @@ export default function PlatformLoginPage() {
 
         setSubmitting(true);
         try {
-            const auth = await platformAdminService.login(values.email, values.password);
+            const user = await superAdminLogin(values);
 
-            setAccessToken(auth.accessToken);
-            setRefreshToken(auth.refreshToken);
-            setRole(Role.SUPER_ADMIN);
-            clearTenantContext();
+            if (user.role !== "SUPER_ADMIN" || user.tenantId !== null) {
+                throw new Error("Invalid platform authentication response");
+            }
 
             toast({
                 title: "Acceso concedido",

@@ -11,39 +11,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Search, ChevronDown, LogOut, Shield } from "lucide-react";
-import { clearAuthContext, getRefreshToken, getRole } from "@/lib/authContext";
-import { clearTenantContext } from "@/lib/tenantContext";
+import { useAuth } from "@/lib/authContext";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { getRoleDisplayName } from "@/lib/rbacEngine";
-import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
 import { t } from "@/i18n";
-import { platformAdminService } from "@/services/platformAdminService";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 
 export function PlatformHeader() {
     const router = useRouter();
-    const [role, setRole] = useState<string | null>(null);
-
-    useEffect(() => {
-        const userRole = getRole();
-        if (userRole) {
-            setRole(getRoleDisplayName(userRole));
-        }
-    }, []);
+    const { logout, user } = useAuth();
 
     const handleLogout = async () => {
-        const refreshToken = getRefreshToken();
-
-        if (refreshToken) {
-            try {
-                await platformAdminService.logout(refreshToken);
-            } catch {
-                // Ignore network/logout errors and clear local auth anyway.
-            }
-        }
-
-        clearAuthContext();
-        clearTenantContext();
+        await logout();
         router.push("/platform-admin/login");
     };
 
@@ -69,7 +47,7 @@ export function PlatformHeader() {
                         />
                     </div>
 
-                    <LanguageSwitcher />
+                    <ThemeToggle />
 
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -100,7 +78,7 @@ export function PlatformHeader() {
                                 className="rounded-full w-10 h-10 p-0"
                             >
                                 <div className="w-full h-full rounded-full bg-muted flex items-center justify-center text-sm font-semibold">
-                                    A
+                                    {user?.fullName.slice(0, 1).toUpperCase() || "U"}
                                 </div>
                             </Button>
                         </DropdownMenuTrigger>

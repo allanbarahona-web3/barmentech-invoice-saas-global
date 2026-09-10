@@ -1,50 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { TenantSidebar } from "@/components/system/TenantSidebar";
 import { TenantHeader } from "@/components/system/TenantHeader";
 import { TenantSystemGuard } from "@/lib/routeGuards";
-import { useTenantSettingsQuery } from "@/hooks/useTenantSettings";
-import { Loader2 } from "lucide-react";
-import { t } from "@/i18n";
-
-function OnboardingGuard({ children }: { children: React.ReactNode }) {
-    const pathname = usePathname();
-    const router = useRouter();
-    const { data: settings, isLoading } = useTenantSettingsQuery();
-
-    useEffect(() => {
-        if (isLoading) return;
-
-        const isOnboardingPage = pathname === "/system/onboarding";
-        const onboardingCompleted = settings?.onboardingCompleted ?? false;
-
-        // Si no está completo y no estamos en onboarding, redirigir
-        if (!onboardingCompleted && !isOnboardingPage) {
-            router.push("/system/onboarding");
-        }
-
-        // Si está completo y estamos en onboarding, redirigir al dashboard
-        if (onboardingCompleted && isOnboardingPage) {
-            router.push("/system/dashboard");
-        }
-    }, [settings, pathname, router, isLoading]);
-
-    if (isLoading) {
-        return (
-            <div className="flex min-h-screen items-center justify-center">
-                <div className="text-center space-y-4">
-                    <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
-                    <p className="text-muted-foreground">{t().system.onboarding.loadingSettings}</p>
-                </div>
-            </div>
-        );
-    }
-
-    return <>{children}</>;
-}
-
 function LayoutContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const isOnboardingPage = pathname === "/system/onboarding";
@@ -74,9 +33,7 @@ export default function TenantSystemLayout({
 }) {
     return (
         <TenantSystemGuard>
-            <OnboardingGuard>
-                <LayoutContent>{children}</LayoutContent>
-            </OnboardingGuard>
+            <LayoutContent>{children}</LayoutContent>
         </TenantSystemGuard>
     );
 }
