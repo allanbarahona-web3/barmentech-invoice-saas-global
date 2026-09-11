@@ -14,6 +14,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { RLSInterceptor } from './common/interceptors/rls.interceptor';
+import { CustomerModule } from './customer/customer.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { PlatformModule } from './platform/platform.module';
 import { TenantMiddleware } from './tenant/tenant.middleware';
@@ -37,6 +38,7 @@ import { TenantModule } from './tenant/tenant.module';
     TenantModule,
     AuthModule,
     PlatformModule,
+    CustomerModule,
   ],
   controllers: [AppController],
   providers: [

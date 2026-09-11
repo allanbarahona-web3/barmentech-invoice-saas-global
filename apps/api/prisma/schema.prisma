@@ -16,6 +16,25 @@ enum UserRole {
   ACCOUNTANT
 }
 
+enum CustomerType {
+  PERSON
+  ORGANIZATION
+}
+
+enum CustomerAddressType {
+  BUSINESS
+  BILLING
+  SHIPPING
+  OTHER
+}
+
+enum CustomerAddressPurpose {
+  BUSINESS
+  BILLING
+  SHIPPING
+  OTHER
+}
+
 model Tenant {
   id           String   @id @default(cuid())
   name         String   @unique
@@ -25,8 +44,13 @@ model Tenant {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  settings    TenantSettings?
-  memberships TenantMembership[]
+  settings                          TenantSettings?
+  memberships                       TenantMembership[]
+  customers                         Customer[]
+  customerAddresses                 CustomerAddress[]
+  customerEmails                    CustomerEmail[]
+  customerPhones                    CustomerPhone[]
+  customerAddressPurposeAssignments CustomerAddressPurposeAssignment[]
 }
 
 model TenantSettings {
@@ -89,6 +113,125 @@ model TenantMembership {
   @@index([userId])
   @@index([tenantId, role])
   @@map("tenant_memberships")
+}
+
+model Customer {
+  id                            String       @id @default(cuid())
+  tenantId                      String
+  type                          CustomerType
+  displayName                   String
+  firstName                     String?
+  middleName                    String?
+  lastName                      String?
+  secondLastName                String?
+  legalName                     String?
+  tradeName                     String?
+  identificationType            String
+  identificationValue           String
+  normalizedIdentificationValue String
+  countryCode                   String?      @db.VarChar(2)
+  email                         String?
+  billingEmail                  String?
+  phone                         String?
+  isActive                      Boolean      @default(true)
+  createdAt                     DateTime     @default(now())
+  updatedAt                     DateTime     @updatedAt
+
+  tenant                    Tenant                             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  addresses                 CustomerAddress[]
+  emails                    CustomerEmail[]
+  phones                    CustomerPhone[]
+  addressPurposeAssignments CustomerAddressPurposeAssignment[]
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([tenantId, isActive])
+  @@index([tenantId, displayName])
+  @@map("customers")
+}
+
+model CustomerAddress {
+  id           String              @id @default(cuid())
+  tenantId     String
+  customerId   String
+  type         CustomerAddressType
+  countryCode  String?             @db.VarChar(2)
+  region       String?
+  city         String?
+  district     String?
+  postalCode   String?
+  addressLine1 String?
+  addressLine2 String?
+  isPrimary    Boolean             @default(false)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  tenant             Tenant                             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer           Customer                           @relation(fields: [customerId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  purposeAssignments CustomerAddressPurposeAssignment[]
+
+  @@unique([id, customerId, tenantId])
+  @@index([tenantId])
+  @@index([tenantId, customerId])
+  @@index([tenantId, customerId, type])
+  @@map("customer_addresses")
+}
+
+model CustomerEmail {
+  id         String   @id @default(cuid())
+  tenantId   String
+  customerId String
+  label      String?
+  email      String
+  isPrimary  Boolean  @default(false)
+  isBilling  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId, tenantId], references: [id, tenantId], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, customerId])
+  @@map("customer_emails")
+}
+
+model CustomerPhone {
+  id         String   @id @default(cuid())
+  tenantId   String
+  customerId String
+  label      String?
+  phone      String
+  isPrimary  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId, tenantId], references: [id, tenantId], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, customerId])
+  @@map("customer_phones")
+}
+
+model CustomerAddressPurposeAssignment {
+  tenantId            String
+  customerId          String
+  customerAddressId   String
+  purpose             CustomerAddressPurpose
+  isPrimaryForPurpose Boolean                @default(false)
+  createdAt           DateTime               @default(now())
+
+  tenant          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer        Customer        @relation(fields: [customerId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  customerAddress CustomerAddress @relation(fields: [customerAddressId, customerId, tenantId], references: [id, customerId, tenantId], onDelete: Cascade)
+
+  @@id([customerAddressId, purpose])
+  @@index([tenantId])
+  @@index([tenantId, customerId])
+  @@index([tenantId, customerAddressId])
+  @@index([tenantId, customerId, purpose])
+  @@map("customer_address_purpose_assignments")
 }
 
 model PasswordResetToken {

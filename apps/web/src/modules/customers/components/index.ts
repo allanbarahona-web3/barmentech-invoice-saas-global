@@ -1,4 +1,3 @@
 export { CustomerForm } from "./CustomerForm";
-export { CustomerDialog } from "./CustomerDialog";
+export { CustomerDrawer } from "./CustomerDrawer";
 export { CustomersTable } from "./CustomersTable";
-export { ImportCustomersDialog } from "./ImportCustomersDialog";
