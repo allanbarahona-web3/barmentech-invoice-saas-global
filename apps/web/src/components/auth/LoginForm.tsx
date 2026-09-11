@@ -15,16 +15,17 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form";
-import { loginSchema, type LoginFormData } from "@/schemas/login.schema";
+import { createLoginSchema, type LoginFormData } from "@/schemas/login.schema";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks";
 import { useAuth } from "@/lib/authContext";
-import { t } from "@/i18n";
+import { useTranslations } from "@/i18n";
 
 export function LoginForm() {
     const router = useRouter();
     const { toast } = useToast();
     const { login } = useAuth();
+    const { messages } = useTranslations();
     const [isHumanReady, setIsHumanReady] = useState(false);
 
     useEffect(() => {
@@ -36,7 +37,7 @@ export function LoginForm() {
     }, []);
 
     const form = useForm<LoginFormData>({
-        resolver: zodResolver(loginSchema),
+        resolver: zodResolver(createLoginSchema(messages.auth)),
         defaultValues: {
             email: "",
             password: "",
@@ -64,8 +65,8 @@ export function LoginForm() {
         } catch {
             // Generic error message to prevent user enumeration
             toast({
-                title: "Error",
-                description: t().auth.invalidCredentials,
+                title: messages.auth.error,
+                description: messages.auth.invalidCredentials,
                 variant: "destructive",
             });
         }
@@ -79,10 +80,10 @@ export function LoginForm() {
                     name="email"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Email</FormLabel>
+                            <FormLabel>{messages.auth.email}</FormLabel>
                             <FormControl>
                                 <Input
-                                    placeholder="you@example.com"
+                                    placeholder={messages.auth.emailPlaceholder}
                                     type="email"
                                     disabled={form.formState.isSubmitting}
                                     {...field}
@@ -98,12 +99,12 @@ export function LoginForm() {
                     render={({ field }) => (
                         <FormItem>
                             <div className="flex items-center justify-between">
-                                <FormLabel>Password</FormLabel>
+                                <FormLabel>{messages.auth.password}</FormLabel>
                                 <Link
                                     href="/forgot-password"
                                     className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                                 >
-                                    {t().auth.forgotPassword}
+                                    {messages.auth.forgotPassword}
                                 </Link>
                             </div>
                             <FormControl>
@@ -137,17 +138,17 @@ export function LoginForm() {
                     {form.formState.isSubmitting ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            {t().auth.loginButton}...
+                            {messages.auth.loginButton}...
                         </>
                     ) : (
-                        t().auth.loginButton
+                        messages.auth.loginButton
                     )}
                 </Button>
 
                 <p className="text-center text-sm text-muted-foreground">
-                    {t().auth.noAccount}{" "}
+                    {messages.auth.noAccount}{" "}
                     <Link href="/signup" className="font-semibold text-foreground hover:underline">
-                        {t().auth.signupLink}
+                        {messages.auth.signupLink}
                     </Link>
                 </p>
             </form>

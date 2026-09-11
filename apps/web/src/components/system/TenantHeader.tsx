@@ -12,13 +12,15 @@ import { Button } from "@/components/ui/button";
 import { Search, ChevronDown, LogOut, User, Settings } from "lucide-react";
 import { useAuth } from "@/lib/authContext";
 import { useRouter } from "next/navigation";
-import { t } from "@/i18n";
+import { useTranslations } from "@/i18n";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
+import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
 
 export function TenantHeader() {
     const router = useRouter();
     const { logout, tenantName, user } = useAuth();
+    const { messages } = useTranslations();
 
     const handleLogout = async () => {
         await logout();
@@ -29,39 +31,40 @@ export function TenantHeader() {
         <header className="border-b bg-background px-6 py-4 no-print">
             <div className="flex items-center justify-between gap-4">
                 <div className="flex-1">
-                    <h1 className="text-2xl font-bold">{t().common.dashboard}</h1>
+                    <h1 className="text-2xl font-bold">{messages.common.dashboard}</h1>
                 </div>
 
                 <div className="flex items-center gap-4">
                     <div className="hidden md:flex items-center gap-2 bg-muted rounded-lg px-3 py-2 w-48">
                         <Search className="w-4 h-4 text-muted-foreground" />
                         <Input
-                            placeholder="Search..."
+                            placeholder={messages.shell.searchPlaceholder}
                             className="bg-transparent border-0 text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
                         />
                     </div>
 
                     <ThemeToggle />
+                    <LanguageSwitcher />
 
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="outline" size="sm" className="gap-2">
-                                {tenantName || "Tenant"}
+                                {tenantName || messages.shell.tenantFallback}
                                 <ChevronDown className="w-4 h-4" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
                             <div className="px-2 py-1.5">
                                 <p className="text-xs text-muted-foreground font-semibold">
-                                    CURRENT TENANT
+                                    {messages.shell.currentTenant}
                                 </p>
                                 <p className="text-sm font-medium truncate">
-                                    {tenantName || "Tenant"}
+                                    {tenantName || messages.shell.tenantFallback}
                                 </p>
                             </div>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem disabled>
-                                Switch Tenant (Coming soon)
+                                {messages.shell.switchTenantComingSoon}
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -82,19 +85,19 @@ export function TenantHeader() {
                             <DropdownMenuItem asChild>
                                 <Link href="/system/profile" className="cursor-pointer">
                                     <User className="w-4 h-4 mr-2" />
-                                    Perfil
+                                    {messages.shell.profile}
                                 </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
                                 <Link href="/system/settings" className="cursor-pointer">
                                     <Settings className="w-4 h-4 mr-2" />
-                                    {t().common.settings}
+                                    {messages.common.settings}
                                 </Link>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={handleLogout}>
                                 <LogOut className="w-4 h-4 mr-2" />
-                                {t().common.logout}
+                                {messages.common.logout}
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>

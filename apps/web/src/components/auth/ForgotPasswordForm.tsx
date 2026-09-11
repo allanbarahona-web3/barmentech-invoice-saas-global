@@ -14,14 +14,16 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form";
-import { forgotPasswordSchema, type ForgotPasswordFormData } from "@/schemas/forgotPassword.schema";
+import { createForgotPasswordSchema, type ForgotPasswordFormData } from "@/schemas/forgotPassword.schema";
 import { useToast } from "@/hooks";
+import { useTranslations } from "@/i18n";
 
 export function ForgotPasswordForm() {
     const { toast } = useToast();
+    const { messages } = useTranslations();
 
     const form = useForm<ForgotPasswordFormData>({
-        resolver: zodResolver(forgotPasswordSchema),
+        resolver: zodResolver(createForgotPasswordSchema(messages.auth)),
         defaultValues: {
             email: "",
         },
@@ -34,16 +36,16 @@ export function ForgotPasswordForm() {
 
             // Generic success message - don't reveal if account exists
             toast({
-                title: "Email enviado",
-                description: "Si la cuenta existe, recibirás un correo con instrucciones para restablecer tu contraseña.",
+                title: messages.auth.passwordResetSent,
+                description: messages.auth.passwordResetSentDescription,
             });
 
             form.reset();
         } catch (error) {
             // Same generic message even on error
             toast({
-                title: "Email enviado",
-                description: "Si la cuenta existe, recibirás un correo con instrucciones para restablecer tu contraseña.",
+                title: messages.auth.passwordResetSent,
+                description: messages.auth.passwordResetSentDescription,
             });
         }
     };
@@ -56,10 +58,10 @@ export function ForgotPasswordForm() {
                     name="email"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Email</FormLabel>
+                            <FormLabel>{messages.auth.email}</FormLabel>
                             <FormControl>
                                 <Input
-                                    placeholder="you@example.com"
+                                    placeholder={messages.auth.emailPlaceholder}
                                     type="email"
                                     disabled={form.formState.isSubmitting}
                                     {...field}
@@ -78,17 +80,17 @@ export function ForgotPasswordForm() {
                     {form.formState.isSubmitting ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Enviando...
+                            {messages.auth.sending}
                         </>
                     ) : (
-                        "Enviar instrucciones"
+                        messages.auth.sendInstructions
                     )}
                 </Button>
 
                 <p className="text-center text-sm text-muted-foreground">
-                    ¿Recordaste tu contraseña?{" "}
+                    {messages.auth.rememberedPassword}{" "}
                     <Link href="/login" className="font-semibold text-foreground hover:underline">
-                        Iniciar sesión
+                        {messages.auth.loginLink}
                     </Link>
                 </p>
             </form>

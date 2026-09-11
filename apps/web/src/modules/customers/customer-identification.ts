@@ -1,19 +1,16 @@
-export const customerIdentificationTypes = [
-  { value: "NATIONAL_ID", label: "ID Nacional" },
-  { value: "LEGAL_ENTITY_ID", label: "ID Empresa" },
-  { value: "RESIDENCY_ID", label: "Residencia / DIMEX" },
-  { value: "PASSPORT", label: "Pasaporte" },
-  { value: "TAX_ID", label: "NIT / Tax ID" },
-  { value: "SSN", label: "SSN" },
-  { value: "EIN", label: "EIN" },
-  { value: "OTHER", label: "Otro" },
-] as const;
+export const customerIdentificationTypes = ["NATIONAL_ID", "LEGAL_ENTITY_ID", "RESIDENCY_ID", "PASSPORT", "TAX_ID", "SSN", "EIN", "OTHER"] as const;
+type CustomerIdentificationType = (typeof customerIdentificationTypes)[number];
+type IdentificationMessages = Record<CustomerIdentificationType, string>;
 
-export function customerIdentificationTypeLabel(value: string | null | undefined): string | undefined {
+export function getCustomerIdentificationTypes(messages: IdentificationMessages) {
+  return customerIdentificationTypes.map((value) => ({ value, label: messages[value] }));
+}
+
+export function customerIdentificationTypeLabel(value: string | null | undefined, messages: IdentificationMessages): string | undefined {
   if (!value) return undefined;
-  return customerIdentificationTypes.find((type) => type.value === value)?.label ?? `Otro (${value})`;
+  return customerIdentificationTypes.includes(value as CustomerIdentificationType) ? messages[value as CustomerIdentificationType] : `${messages.OTHER} (${value})`;
 }
 
 export function isKnownCustomerIdentificationType(value: string | null | undefined): boolean {
-  return Boolean(value && customerIdentificationTypes.some((type) => type.value === value));
+  return Boolean(value && customerIdentificationTypes.includes(value as CustomerIdentificationType));
 }

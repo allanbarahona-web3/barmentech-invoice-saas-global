@@ -102,20 +102,21 @@ export async function deactivateCustomer(id: string): Promise<Customer> {
   return response.data;
 }
 
-export function customerErrorMessage(error: unknown): string {
-  if (!axios.isAxiosError(error)) return "No pudimos completar la solicitud. Inténtalo nuevamente.";
+export type CustomerErrorCode = "requestFailed" | "sessionExpired" | "forbidden" | "unavailable" | "duplicateIdentification" | "identificationRequired" | "primaryEmail" | "primaryPhone" | "primaryAddress" | "addressPurpose" | "invalidTypeFields" | "saveFailed";
+
+export function customerErrorCode(error: unknown): CustomerErrorCode {
+  if (!axios.isAxiosError(error)) return "requestFailed";
   const status = error.response?.status;
   const message = error.response?.data?.message;
-  if (status === 401) return "Tu sesión expiró. Inicia sesión nuevamente.";
-  if (status === 403) return "No tienes permisos para administrar clientes.";
-  if (status === 404 || message === "CUSTOMER_NOT_FOUND") return "El cliente ya no está disponible.";
-  if (message === "DUPLICATE_CUSTOMER_IDENTIFICATION") return "Ya existe un cliente con esa identificación.";
-  if (message === "IDENTIFICATION_REQUIRED") return "Completa el tipo y número de identificación.";
-  if (message === "PRIMARY_EMAIL_CONFLICT") return "Solo un correo puede ser principal.";
-  if (message === "PRIMARY_PHONE_CONFLICT") return "Solo un teléfono puede ser principal.";
-  if (message === "PRIMARY_ADDRESS_CONFLICT") return "Solo una dirección puede ser principal para cada uso.";
-  if (message === "ADDRESS_PURPOSE_REQUIRED" || message === "DUPLICATE_ADDRESS_PURPOSE") return "Selecciona usos válidos para cada dirección.";
-  if (message === "INVALID_CUSTOMER_TYPE_FIELDS") return "Completa los campos obligatorios para el tipo de cliente.";
-  if (message === "INVALID_IDENTIFICATION_PAIR") return "Completa el tipo y número de identificación.";
-  return "No pudimos guardar los cambios. Revisa los datos e inténtalo nuevamente.";
+  if (status === 401) return "sessionExpired";
+  if (status === 403) return "forbidden";
+  if (status === 404 || message === "CUSTOMER_NOT_FOUND") return "unavailable";
+  if (message === "DUPLICATE_CUSTOMER_IDENTIFICATION") return "duplicateIdentification";
+  if (message === "IDENTIFICATION_REQUIRED" || message === "INVALID_IDENTIFICATION_PAIR") return "identificationRequired";
+  if (message === "PRIMARY_EMAIL_CONFLICT") return "primaryEmail";
+  if (message === "PRIMARY_PHONE_CONFLICT") return "primaryPhone";
+  if (message === "PRIMARY_ADDRESS_CONFLICT") return "primaryAddress";
+  if (message === "ADDRESS_PURPOSE_REQUIRED" || message === "DUPLICATE_ADDRESS_PURPOSE") return "addressPurpose";
+  if (message === "INVALID_CUSTOMER_TYPE_FIELDS") return "invalidTypeFields";
+  return "saveFailed";
 }

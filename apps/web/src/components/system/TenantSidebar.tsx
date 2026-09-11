@@ -6,47 +6,47 @@ import { FileText, Users, Package, Settings, LayoutDashboard, Sparkles, BarChart
 import { useMemo } from "react";
 import { isTenantRole, useAuth } from "@/lib/authContext";
 import { canAccess, Role } from "@/lib/rbacEngine";
-import { t } from "@/i18n";
+import { useTranslations } from "@/i18n";
 
-const getSidebarLinks = () => [
+const getSidebarLinks = (messages: ReturnType<typeof useTranslations>["messages"]) => [
     {
-        label: t().system.dashboard,
+        label: messages.system.dashboard,
         href: "/system/dashboard",
         icon: LayoutDashboard,
         route: "dashboard",
     },
     {
-        label: t().system.invoices,
+        label: messages.system.invoices,
         href: "/system/invoices",
         icon: FileText,
         route: "invoices",
     },
     {
-        label: t().system.customers,
+        label: messages.system.customers,
         href: "/system/customers",
         icon: Users,
         route: "customers",
     },
     {
-        label: t().system.products,
+        label: messages.system.products,
         href: "/system/products",
         icon: Package,
         route: "products",
     },
     {
-        label: "Pagos",
+        label: messages.shell.payments,
         href: "/system/payments",
         icon: Wallet,
         route: "payments",
     },
     {
-        label: "Reportes",
+        label: messages.shell.reports,
         href: "/system/reports",
         icon: BarChart3,
         route: "reports",
     },
     {
-        label: t().system.settings,
+        label: messages.system.settings,
         href: "/system/settings",
         icon: Settings,
         route: "settings",
@@ -56,9 +56,10 @@ const getSidebarLinks = () => [
 export function TenantSidebar() {
     const pathname = usePathname();
     const { role } = useAuth();
+    const { messages } = useTranslations();
     const rbacRole = isTenantRole(role) ? Role[role] : null;
     const visibleLinks = useMemo(() => {
-        const links = getSidebarLinks();
+        const links = getSidebarLinks(messages);
         return links.filter((link) =>
             canAccess({
                 area: "system",
@@ -66,14 +67,14 @@ export function TenantSidebar() {
                 role: rbacRole,
             })
         );
-    }, [rbacRole]);
+    }, [messages, rbacRole]);
 
     return (
         <aside className="w-64 border-r bg-background p-6 no-print flex flex-col h-screen sticky top-0">
             <div className="space-y-8 flex-1">
                 <div>
                     <h2 className="font-bold text-lg">Barmentech</h2>
-                    <p className="text-xs text-muted-foreground">Invoice System</p>
+                    <p className="text-xs text-muted-foreground">{messages.shell.invoiceSystem}</p>
                     {role && (
                         <p className="text-xs text-muted-foreground mt-1 font-medium">
                             {role === "BILLING_USER" && "💳"}
@@ -118,15 +119,15 @@ export function TenantSidebar() {
                             </div>
                             <div className="flex-1">
                                 <p className="text-xs font-semibold text-foreground">
-                                    Características Premium
+                                    {messages.shell.premiumFeatures}
                                 </p>
                             </div>
                         </div>
                         <p className="text-[10px] text-muted-foreground leading-tight mb-2">
-                            Automatiza facturas recurrentes y envíos programados
+                            {messages.shell.premiumDescription}
                         </p>
                         <div className="text-[10px] font-medium text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                            Ver más
+                            {messages.shell.seeMore}
                             <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>

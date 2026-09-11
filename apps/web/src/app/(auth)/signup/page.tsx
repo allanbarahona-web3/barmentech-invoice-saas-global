@@ -2,12 +2,14 @@
 
 import { SignupForm } from "@/components/auth/SignupForm";
 import { AuthCard } from "@/components/auth/AuthCard";
+import { useTranslations } from "@/i18n";
 
 export default function SignupPage() {
+    const { messages } = useTranslations();
     return (
         <AuthCard
-            title="Create Account"
-            subtitle="Start your free trial today"
+            title={messages.auth.signupTitle}
+            subtitle={messages.auth.signupSubtitle}
         >
             <SignupForm />
         </AuthCard>

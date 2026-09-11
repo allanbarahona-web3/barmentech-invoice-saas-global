@@ -1,23 +1,36 @@
 import { z } from "zod";
 
-export const signupSchema = z.object({
+export type SignupValidationMessages = {
+    fullNameRequired: string;
+    fullNameMin: string;
+    emailRequired: string;
+    emailInvalid: string;
+    companyNameRequired: string;
+    companyNameMin: string;
+    passwordRequired: string;
+    passwordMin: string;
+};
+
+export function createSignupSchema(messages: SignupValidationMessages) {
+    return z.object({
     fullName: z
         .string()
-        .min(1, "Full name is required")
-        .min(2, "Full name must be at least 2 characters"),
+        .min(1, messages.fullNameRequired)
+        .min(2, messages.fullNameMin),
     email: z
         .string()
-        .min(1, "Email is required")
-        .email("Please enter a valid email address"),
+        .min(1, messages.emailRequired)
+        .email(messages.emailInvalid),
     companyName: z
         .string()
-        .min(1, "Company name is required")
-        .min(2, "Company name must be at least 2 characters"),
+        .min(1, messages.companyNameRequired)
+        .min(2, messages.companyNameMin),
     password: z
         .string()
-        .min(1, "Password is required")
-        .min(8, "Password must be at least 8 characters"),
+        .min(1, messages.passwordRequired)
+        .min(8, messages.passwordMin),
     website: z.string().optional(),
-});
+    });
+}
 
-export type SignupFormData = z.infer<typeof signupSchema>;
+export type SignupFormData = z.infer<ReturnType<typeof createSignupSchema>>;

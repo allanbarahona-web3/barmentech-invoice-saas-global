@@ -3,13 +3,14 @@
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 import { useCreateCustomerMutation, useUpdateCustomerMutation } from "../customer.hooks";
-import { customerErrorMessage } from "../customer.service";
+import { customerErrorCode } from "../customer.service";
 import {
   toCustomerMutationPayload,
   type CustomerEditorInitialCustomer,
   type CustomerEditorValues,
 } from "../customer-editor.schema";
 import { CustomerForm } from "./CustomerForm";
+import { useTranslations } from "@/i18n";
 
 type CustomerDrawerProps = {
   open: boolean;
@@ -20,6 +21,7 @@ type CustomerDrawerProps = {
 
 export function CustomerDrawer({ open, onOpenChange, customer, onSaved }: CustomerDrawerProps) {
   const { toast } = useToast();
+  const { messages } = useTranslations();
   const isEdit = Boolean(customer);
   const createMutation = useCreateCustomerMutation();
   const updateMutation = useUpdateCustomerMutation();
@@ -32,15 +34,15 @@ export function CustomerDrawer({ open, onOpenChange, customer, onSaved }: Custom
         ? await updateMutation.mutateAsync({ id: customer!.id, payload })
         : await createMutation.mutateAsync(payload);
       toast({
-        title: isEdit ? "Cliente actualizado" : "Cliente creado",
-        description: isEdit ? "Los cambios se guardaron correctamente." : "El cliente se creó correctamente.",
+        title: isEdit ? messages.customers.updatedTitle : messages.customers.createdTitle,
+        description: isEdit ? messages.customers.updatedDescription : messages.customers.createdDescription,
       });
       onSaved?.(savedCustomer);
       onOpenChange(false);
     } catch (error) {
       toast({
-        title: "No se pudo guardar el cliente",
-        description: customerErrorMessage(error),
+        title: messages.customers.saveError,
+        description: messages.customers.errors[customerErrorCode(error)],
         variant: "destructive",
       });
     }
@@ -50,9 +52,9 @@ export function CustomerDrawer({ open, onOpenChange, customer, onSaved }: Custom
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>{isEdit ? "Editar cliente" : "Nuevo cliente"}</SheetTitle>
+          <SheetTitle>{isEdit ? messages.customers.editTitle : messages.customers.newTitle}</SheetTitle>
           <SheetDescription>
-            {isEdit ? "Actualiza la información del cliente." : "Agrega la información principal ahora; lo demás puede completarse después."}
+            {isEdit ? messages.customers.editDescription : messages.customers.newDescription}
           </SheetDescription>
         </SheetHeader>
         <CustomerForm

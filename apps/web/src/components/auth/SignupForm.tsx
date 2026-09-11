@@ -15,12 +15,13 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form";
-import { signupSchema, type SignupFormData } from "@/schemas/signup.schema";
+import { createSignupSchema, type SignupFormData } from "@/schemas/signup.schema";
 import { useToast } from "@/hooks";
-import { t } from "@/i18n";
+import { useTranslations } from "@/i18n";
 
 export function SignupForm() {
     const { toast } = useToast();
+    const { messages } = useTranslations();
     const [isHumanReady, setIsHumanReady] = useState(false);
 
     useEffect(() => {
@@ -32,7 +33,7 @@ export function SignupForm() {
     }, []);
 
     const form = useForm<SignupFormData>({
-        resolver: zodResolver(signupSchema),
+        resolver: zodResolver(createSignupSchema(messages.auth)),
         defaultValues: {
             fullName: "",
             email: "",
@@ -56,8 +57,8 @@ export function SignupForm() {
         }
 
         toast({
-            title: "Error",
-            description: t().auth.createAccountError,
+            title: messages.auth.error,
+            description: messages.auth.createAccountError,
             variant: "destructive",
         });
     };
@@ -70,10 +71,10 @@ export function SignupForm() {
                     name="fullName"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Full Name</FormLabel>
+                            <FormLabel>{messages.auth.fullName}</FormLabel>
                             <FormControl>
                                 <Input
-                                    placeholder="John Doe"
+                                    placeholder={messages.auth.fullNamePlaceholder}
                                     disabled={form.formState.isSubmitting}
                                     {...field}
                                 />
@@ -88,10 +89,10 @@ export function SignupForm() {
                     name="email"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Email</FormLabel>
+                            <FormLabel>{messages.auth.email}</FormLabel>
                             <FormControl>
                                 <Input
-                                    placeholder="you@example.com"
+                                    placeholder={messages.auth.emailPlaceholder}
                                     type="email"
                                     disabled={form.formState.isSubmitting}
                                     {...field}
@@ -107,10 +108,10 @@ export function SignupForm() {
                     name="companyName"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Company Name</FormLabel>
+                            <FormLabel>{messages.auth.companyName}</FormLabel>
                             <FormControl>
                                 <Input
-                                    placeholder="Acme Inc"
+                                    placeholder={messages.auth.companyNamePlaceholder}
                                     disabled={form.formState.isSubmitting}
                                     {...field}
                                 />
@@ -125,7 +126,7 @@ export function SignupForm() {
                     name="password"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Password</FormLabel>
+                            <FormLabel>{messages.auth.password}</FormLabel>
                             <FormControl>
                                 <Input
                                     placeholder="••••••••"
@@ -157,17 +158,17 @@ export function SignupForm() {
                     {form.formState.isSubmitting ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            {t().auth.signupButton}...
+                            {messages.auth.signupButton}...
                         </>
                     ) : (
-                        t().auth.signupButton
+                        messages.auth.signupButton
                     )}
                 </Button>
 
                 <p className="text-center text-sm text-muted-foreground">
-                    {t().auth.haveAccount}{" "}
+                    {messages.auth.haveAccount}{" "}
                     <Link href="/login" className="font-semibold text-foreground hover:underline">
-                        {t().auth.loginLink}
+                        {messages.auth.loginLink}
                     </Link>
                 </p>
             </form>

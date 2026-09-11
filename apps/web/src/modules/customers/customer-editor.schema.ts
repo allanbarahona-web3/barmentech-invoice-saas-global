@@ -4,11 +4,11 @@ export const customerTypeSchema = z.enum(["PERSON", "ORGANIZATION"]);
 export const customerAddressPurposeSchema = z.enum(["BUSINESS", "BILLING", "SHIPPING", "OTHER"]);
 
 const optionalText = z.string().trim().max(500).optional().or(z.literal(""));
-const optionalCountryCode = z.string().trim().regex(/^[a-zA-Z]{2}$/, "Usa un código de país de dos letras").optional().or(z.literal(""));
+const optionalCountryCode = z.string().trim().regex(/^[a-zA-Z]{2}$/, "countryCode").optional().or(z.literal(""));
 
 const emailSchema = z.object({
   label: z.string().trim().max(200).optional().or(z.literal("")),
-  email: z.string().trim().email("Ingresa un email válido").optional().or(z.literal("")),
+  email: z.string().trim().email("emailInvalid").optional().or(z.literal("")),
   isPrimary: z.boolean(),
   isBilling: z.boolean(),
 });
@@ -32,47 +32,47 @@ const addressSchema = z.object({
   postalCode: z.string().trim().max(50).optional().or(z.literal("")),
   addressLine1: optionalText,
   addressLine2: optionalText,
-  purposes: z.array(addressPurposeSchema).min(1, "Selecciona al menos un uso para la dirección"),
+  purposes: z.array(addressPurposeSchema).min(1, "addressPurpose"),
 });
 
 export const customerEditorSchema = z.object({
   type: customerTypeSchema,
-  displayName: z.string().trim().min(1, "El nombre para mostrar es obligatorio").max(300),
+  displayName: z.string().trim().min(1, "displayName").max(300),
   firstName: z.string().trim().max(150).optional().or(z.literal("")),
   middleName: z.string().trim().max(150).optional().or(z.literal("")),
   lastName: z.string().trim().max(150).optional().or(z.literal("")),
   secondLastName: z.string().trim().max(150).optional().or(z.literal("")),
   legalName: z.string().trim().max(300).optional().or(z.literal("")),
   tradeName: z.string().trim().max(300).optional().or(z.literal("")),
-  identificationType: z.string().trim().min(1, "Selecciona un tipo de identificación").max(100),
-  identificationValue: z.string().trim().min(1, "El número de identificación es obligatorio").max(200),
+  identificationType: z.string().trim().min(1, "identificationType").max(100),
+  identificationValue: z.string().trim().min(1, "identificationNumber").max(200),
   countryCode: optionalCountryCode,
   emails: z.array(emailSchema),
   phones: z.array(phoneSchema),
   addresses: z.array(addressSchema),
 }).superRefine((data, ctx) => {
   if (data.type === "PERSON") {
-    if (!data.firstName) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["firstName"], message: "El nombre es obligatorio" });
-    if (!data.lastName) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["lastName"], message: "El primer apellido es obligatorio" });
+    if (!data.firstName) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["firstName"], message: "firstName" });
+    if (!data.lastName) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["lastName"], message: "lastName" });
   }
   if (data.type === "ORGANIZATION" && !data.legalName) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["legalName"], message: "La razón social es obligatoria" });
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["legalName"], message: "legalName" });
   }
 
   const emailsWithValues = data.emails.filter((item) => item.email || item.label);
   if (emailsWithValues.some((item) => !item.email)) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["emails"], message: "Completa el correo de cada contacto agregado" });
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["emails"], message: "emailRequired" });
   }
   if (emailsWithValues.filter((item) => item.isPrimary).length > 1) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["emails"], message: "Solo un correo puede ser principal" });
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["emails"], message: "onePrimaryEmail" });
   }
 
   const phonesWithValues = data.phones.filter((item) => item.phone || item.label);
   if (phonesWithValues.some((item) => !item.phone)) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["phones"], message: "Completa el teléfono de cada contacto agregado" });
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["phones"], message: "phoneRequired" });
   }
   if (phonesWithValues.filter((item) => item.isPrimary).length > 1) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["phones"], message: "Solo un teléfono puede ser principal" });
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["phones"], message: "onePrimaryPhone" });
   }
 
   const primaryPurposes = new Set<string>();
@@ -82,7 +82,7 @@ export const customerEditorSchema = z.object({
     address.purposes.forEach((assignment) => {
       if (!assignment.isPrimaryForPurpose) return;
       if (primaryPurposes.has(assignment.purpose)) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["addresses", index, "purposes"], message: "Solo una dirección puede ser principal para cada uso" });
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["addresses", index, "purposes"], message: "onePrimaryAddress" });
       }
       primaryPurposes.add(assignment.purpose);
     });

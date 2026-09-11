@@ -9,40 +9,21 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { COUNTRIES } from "@/constants/countries";
-import {
-  customerEditorDefaults,
-  customerEditorSchema,
-  emptyAddress,
-  emptyEmail,
-  emptyPhone,
-  type CustomerEditorInitialCustomer,
-  type CustomerEditorValues,
-} from "../customer-editor.schema";
-import { customerIdentificationTypes, customerIdentificationTypeLabel, isKnownCustomerIdentificationType } from "../customer-identification";
+import { COUNTRIES, getCountryName } from "@/constants/countries";
+import { interpolate, type Dictionary, type Locale, useTranslations } from "@/i18n";
+import { customerEditorDefaults, customerEditorSchema, emptyAddress, emptyEmail, emptyPhone, type CustomerEditorInitialCustomer, type CustomerEditorValues } from "../customer-editor.schema";
+import { customerIdentificationTypeLabel, getCustomerIdentificationTypes, isKnownCustomerIdentificationType } from "../customer-identification";
 
-type CustomerFormProps = {
-  customer?: CustomerEditorInitialCustomer;
-  open: boolean;
-  isSubmitting?: boolean;
-  onCancel: () => void;
-  onSubmit: (values: CustomerEditorValues) => Promise<void> | void;
-};
-
-const purposeLabels = {
-  BUSINESS: "Dirección principal / negocio",
-  BILLING: "Facturación",
-  SHIPPING: "Entrega",
-  OTHER: "Otro",
-} as const;
+type CustomerFormProps = { customer?: CustomerEditorInitialCustomer; open: boolean; isSubmitting?: boolean; onCancel: () => void; onSubmit: (values: CustomerEditorValues) => Promise<void> | void };
+type Messages = Dictionary;
 
 export function CustomerForm({ customer, open, isSubmitting = false, onCancel, onSubmit }: CustomerFormProps) {
+  const { messages, locale } = useTranslations();
   const form = useForm<CustomerEditorValues>({ resolver: zodResolver(customerEditorSchema), defaultValues: customerEditorDefaults(customer) });
   const emails = useFieldArray({ control: form.control, name: "emails" });
   const phones = useFieldArray({ control: form.control, name: "phones" });
   const addresses = useFieldArray({ control: form.control, name: "addresses" });
   const displayNameEdited = useRef(Boolean(customer?.displayName));
-
   const type = form.watch("type");
   const firstName = form.watch("firstName");
   const middleName = form.watch("middleName");
@@ -52,139 +33,51 @@ export function CustomerForm({ customer, open, isSubmitting = false, onCancel, o
   const tradeName = form.watch("tradeName");
   const identificationType = form.watch("identificationType");
 
-  useEffect(() => {
-    if (!open) return;
-    form.reset(customerEditorDefaults(customer));
-    displayNameEdited.current = Boolean(customer?.displayName);
-  }, [customer, form, open]);
-
+  useEffect(() => { if (open) { form.reset(customerEditorDefaults(customer)); displayNameEdited.current = Boolean(customer?.displayName); } }, [customer, form, open]);
   useEffect(() => {
     if (displayNameEdited.current) return;
-    const suggestion = type === "PERSON"
-      ? suggestedDisplayName(firstName, middleName, lastName, secondLastName)
-      : suggestedDisplayName(tradeName || legalName || "");
+    const suggestion = type === "PERSON" ? suggestedDisplayName(firstName, middleName, lastName, secondLastName) : suggestedDisplayName(tradeName || legalName || "");
     if (suggestion) form.setValue("displayName", suggestion, { shouldValidate: true });
   }, [firstName, form, lastName, legalName, middleName, secondLastName, tradeName, type]);
 
   const displayNameRegistration = form.register("displayName");
   const setPrimaryEmail = (index: number) => form.setValue("emails", form.getValues("emails").map((email, itemIndex) => ({ ...email, isPrimary: itemIndex === index })), { shouldValidate: true });
   const setPrimaryPhone = (index: number) => form.setValue("phones", form.getValues("phones").map((phone, itemIndex) => ({ ...phone, isPrimary: itemIndex === index })), { shouldValidate: true });
+  const identificationOptions = getCustomerIdentificationTypes(messages.customers.identificationTypes);
 
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col">
-        <div className="flex-1 overflow-y-auto px-6 py-6">
-          <div className="mx-auto max-w-3xl space-y-8 pb-6">
-            <FormSection title="Información principal" description="Empieza con la información que identifica al cliente.">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Tipo de cliente" required error={errorFor(form, "type")}>
-                  <Select value={type} onValueChange={(value) => form.setValue("type", value as CustomerEditorValues["type"], { shouldValidate: true })} disabled={isSubmitting}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="PERSON">Persona</SelectItem><SelectItem value="ORGANIZATION">Organización</SelectItem></SelectContent>
-                  </Select>
-                </Field>
-                <CountryField form={form} name="countryCode" label="País" disabled={isSubmitting} />
-              </div>
-
-              {type === "PERSON" ? <div className="grid gap-4 sm:grid-cols-2">
-                <TextField form={form} name="firstName" label="Nombre" required disabled={isSubmitting} />
-                <TextField form={form} name="middleName" label="Segundo nombre" disabled={isSubmitting} />
-                <TextField form={form} name="lastName" label="Primer apellido" required disabled={isSubmitting} />
-                <TextField form={form} name="secondLastName" label="Segundo apellido" disabled={isSubmitting} />
-              </div> : <div className="grid gap-4 sm:grid-cols-2">
-                <TextField form={form} name="legalName" label="Razón social" required disabled={isSubmitting} />
-                <TextField form={form} name="tradeName" label="Nombre comercial" disabled={isSubmitting} />
-              </div>}
-
-              <Field label="Nombre para mostrar" required error={errorFor(form, "displayName")}>
-                <Input {...displayNameRegistration} onChange={(event) => { displayNameEdited.current = true; displayNameRegistration.onChange(event); }} placeholder={type === "PERSON" ? "Nombre completo" : "Nombre visible del cliente"} disabled={isSubmitting} />
-                <p className="text-muted-foreground mt-1 text-xs">Se sugiere automáticamente; puedes ajustarlo si lo necesitas.</p>
-              </Field>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Tipo de identificación" required error={errorFor(form, "identificationType")}>
-                  <Select value={identificationType || undefined} onValueChange={(value) => form.setValue("identificationType", value, { shouldValidate: true })} disabled={isSubmitting}>
-                    <SelectTrigger><SelectValue placeholder="Selecciona un tipo" /></SelectTrigger>
-                    <SelectContent>
-                      {!isKnownCustomerIdentificationType(identificationType) && identificationType ? <SelectItem value={identificationType}>{customerIdentificationTypeLabel(identificationType)} (valor existente)</SelectItem> : null}
-                      {customerIdentificationTypes.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <TextField form={form} name="identificationValue" label="Número de identificación" required disabled={isSubmitting} />
-              </div>
-            </FormSection>
-
-            <FormSection title="Contacto" description="Agrega los correos y teléfonos que este cliente realmente utiliza.">
-              <div className="space-y-3">
-                {emails.fields.map((field, index) => <ContactCard key={field.id} title={`Correo ${index + 1}`} onRemove={() => emails.remove(index)} canRemove={emails.fields.length > 1} disabled={isSubmitting}>
-                  <div className="grid gap-4 sm:grid-cols-2"><TextField form={form} name={`emails.${index}.label`} label="Etiqueta" placeholder="Ej. General" disabled={isSubmitting} /><TextField form={form} name={`emails.${index}.email`} label="Correo" type="email" disabled={isSubmitting} /></div>
-                  <div className="flex flex-wrap gap-4"><BooleanField label="Principal" checked={Boolean(form.watch(`emails.${index}.isPrimary`))} onChange={(checked) => checked ? setPrimaryEmail(index) : form.setValue(`emails.${index}.isPrimary`, false, { shouldValidate: true })} disabled={isSubmitting} /><BooleanField label="Facturación" checked={Boolean(form.watch(`emails.${index}.isBilling`))} onChange={(checked) => form.setValue(`emails.${index}.isBilling`, checked, { shouldValidate: true })} disabled={isSubmitting} /></div>
-                </ContactCard>)}
-                <p className="text-destructive text-sm">{errorFor(form, "emails")}</p>
-                <Button type="button" variant="outline" onClick={() => emails.append({ ...emptyEmail(), isPrimary: emails.fields.length === 0 })} disabled={isSubmitting}><Plus className="mr-2 size-4" />Agregar correo</Button>
-              </div>
-
-              <div className="space-y-3 border-t pt-5">
-                {phones.fields.map((field, index) => <ContactCard key={field.id} title={`Teléfono ${index + 1}`} onRemove={() => phones.remove(index)} canRemove={phones.fields.length > 1} disabled={isSubmitting}>
-                  <div className="grid gap-4 sm:grid-cols-2"><TextField form={form} name={`phones.${index}.label`} label="Etiqueta" placeholder="Ej. Oficina" disabled={isSubmitting} /><TextField form={form} name={`phones.${index}.phone`} label="Teléfono" type="tel" disabled={isSubmitting} /></div>
-                  <BooleanField label="Principal" checked={Boolean(form.watch(`phones.${index}.isPrimary`))} onChange={(checked) => checked ? setPrimaryPhone(index) : form.setValue(`phones.${index}.isPrimary`, false, { shouldValidate: true })} disabled={isSubmitting} />
-                </ContactCard>)}
-                <p className="text-destructive text-sm">{errorFor(form, "phones")}</p>
-                <Button type="button" variant="outline" onClick={() => phones.append({ ...emptyPhone(), isPrimary: phones.fields.length === 0 })} disabled={isSubmitting}><Plus className="mr-2 size-4" />Agregar teléfono</Button>
-              </div>
-            </FormSection>
-
-            <FormSection title="Direcciones" description="Una misma dirección puede servir para negocio, facturación y entrega.">
-              <div className="space-y-4">
-                {addresses.fields.map((field, index) => <AddressCard key={field.id} form={form} index={index} title={index === 0 ? "Dirección principal" : `Otra dirección ${index}`} onRemove={() => addresses.remove(index)} canRemove={addresses.fields.length > 1} disabled={isSubmitting} />)}
-                <p className="text-destructive text-sm">{errorFor(form, "addresses")}</p>
-                <Button type="button" variant="outline" onClick={() => addresses.append(emptyAddress())} disabled={isSubmitting}><Plus className="mr-2 size-4" />Agregar otra dirección</Button>
-              </div>
-            </FormSection>
-          </div>
-        </div>
-        <div className="sticky bottom-0 border-t bg-background px-6 py-4"><div className="mx-auto flex max-w-3xl flex-col-reverse gap-3 sm:flex-row sm:justify-end"><Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>Cancelar</Button><Button type="submit" disabled={isSubmitting}>{isSubmitting ? "Guardando…" : "Guardar cliente"}</Button></div></div>
-      </form>
-    </Form>
-  );
+  return <Form {...form}><form onSubmit={form.handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col">
+    <div className="flex-1 overflow-y-auto px-6 py-6"><div className="mx-auto max-w-3xl space-y-8 pb-6">
+      <FormSection title={messages.customers.form.primaryInformation} description={messages.customers.form.primaryInformationDescription}>
+        <div className="grid gap-4 sm:grid-cols-2"><Field label={messages.customers.form.customerType} required error={errorFor(form, "type", messages)}><Select value={type} onValueChange={(value) => form.setValue("type", value as CustomerEditorValues["type"], { shouldValidate: true })} disabled={isSubmitting}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="PERSON">{messages.customers.person}</SelectItem><SelectItem value="ORGANIZATION">{messages.customers.organization}</SelectItem></SelectContent></Select></Field><CountryField form={form} name="countryCode" label={messages.customers.country} disabled={isSubmitting} messages={messages} locale={locale} /></div>
+        {type === "PERSON" ? <div className="grid gap-4 sm:grid-cols-2"><TextField form={form} name="firstName" label={messages.customers.form.firstName} required disabled={isSubmitting} messages={messages} /><TextField form={form} name="middleName" label={messages.customers.form.middleName} disabled={isSubmitting} messages={messages} /><TextField form={form} name="lastName" label={messages.customers.form.lastName} required disabled={isSubmitting} messages={messages} /><TextField form={form} name="secondLastName" label={messages.customers.form.secondLastName} disabled={isSubmitting} messages={messages} /></div> : <div className="grid gap-4 sm:grid-cols-2"><TextField form={form} name="legalName" label={messages.customers.legalName} required disabled={isSubmitting} messages={messages} /><TextField form={form} name="tradeName" label={messages.customers.tradeName} disabled={isSubmitting} messages={messages} /></div>}
+        <Field label={messages.customers.form.displayName} required error={errorFor(form, "displayName", messages)}><Input {...displayNameRegistration} onChange={(event) => { displayNameEdited.current = true; displayNameRegistration.onChange(event); }} placeholder={type === "PERSON" ? messages.customers.form.personDisplayNamePlaceholder : messages.customers.form.organizationDisplayNamePlaceholder} disabled={isSubmitting} /><p className="mt-1 text-xs text-muted-foreground">{messages.customers.form.displayNameHelp}</p></Field>
+        <div className="grid gap-4 sm:grid-cols-2"><Field label={messages.customers.form.identificationType} required error={errorFor(form, "identificationType", messages)}><Select value={identificationType || undefined} onValueChange={(value) => form.setValue("identificationType", value, { shouldValidate: true })} disabled={isSubmitting}><SelectTrigger><SelectValue placeholder={messages.customers.form.selectIdentificationType} /></SelectTrigger><SelectContent>{!isKnownCustomerIdentificationType(identificationType) && identificationType ? <SelectItem value={identificationType}>{customerIdentificationTypeLabel(identificationType, messages.customers.identificationTypes)} ({messages.customers.form.existingValue})</SelectItem> : null}{identificationOptions.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent></Select></Field><TextField form={form} name="identificationValue" label={messages.customers.form.identificationNumber} required disabled={isSubmitting} messages={messages} /></div>
+      </FormSection>
+      <FormSection title={messages.customers.form.contact} description={messages.customers.form.contactDescription}>
+        <div className="space-y-3">{emails.fields.map((field, index) => <ContactCard key={field.id} title={interpolate(messages.customers.form.emailNumber, { number: index + 1 })} onRemove={() => emails.remove(index)} canRemove={emails.fields.length > 1} disabled={isSubmitting} removeLabel={messages.customers.form.remove}><div className="grid gap-4 sm:grid-cols-2"><TextField form={form} name={`emails.${index}.label`} label={messages.customers.form.label} placeholder={messages.customers.form.generalExample} disabled={isSubmitting} messages={messages} /><TextField form={form} name={`emails.${index}.email`} label={messages.customers.form.email} type="email" disabled={isSubmitting} messages={messages} /></div><div className="flex flex-wrap gap-4"><BooleanField label={messages.common.primary} checked={Boolean(form.watch(`emails.${index}.isPrimary`))} onChange={(checked) => checked ? setPrimaryEmail(index) : form.setValue(`emails.${index}.isPrimary`, false, { shouldValidate: true })} disabled={isSubmitting} /><BooleanField label={messages.common.billing} checked={Boolean(form.watch(`emails.${index}.isBilling`))} onChange={(checked) => form.setValue(`emails.${index}.isBilling`, checked, { shouldValidate: true })} disabled={isSubmitting} /></div></ContactCard>)}<p className="text-sm text-destructive">{errorFor(form, "emails", messages)}</p><Button type="button" variant="outline" onClick={() => emails.append({ ...emptyEmail(), isPrimary: emails.fields.length === 0 })} disabled={isSubmitting}><Plus className="mr-2 size-4" />{messages.customers.form.addEmail}</Button></div>
+        <div className="space-y-3 border-t pt-5">{phones.fields.map((field, index) => <ContactCard key={field.id} title={interpolate(messages.customers.form.phoneNumber, { number: index + 1 })} onRemove={() => phones.remove(index)} canRemove={phones.fields.length > 1} disabled={isSubmitting} removeLabel={messages.customers.form.remove}><div className="grid gap-4 sm:grid-cols-2"><TextField form={form} name={`phones.${index}.label`} label={messages.customers.form.label} placeholder={messages.customers.form.officeExample} disabled={isSubmitting} messages={messages} /><TextField form={form} name={`phones.${index}.phone`} label={messages.customers.form.phone} type="tel" disabled={isSubmitting} messages={messages} /></div><BooleanField label={messages.common.primary} checked={Boolean(form.watch(`phones.${index}.isPrimary`))} onChange={(checked) => checked ? setPrimaryPhone(index) : form.setValue(`phones.${index}.isPrimary`, false, { shouldValidate: true })} disabled={isSubmitting} /></ContactCard>)}<p className="text-sm text-destructive">{errorFor(form, "phones", messages)}</p><Button type="button" variant="outline" onClick={() => phones.append({ ...emptyPhone(), isPrimary: phones.fields.length === 0 })} disabled={isSubmitting}><Plus className="mr-2 size-4" />{messages.customers.form.addPhone}</Button></div>
+      </FormSection>
+      <FormSection title={messages.customers.form.addresses} description={messages.customers.form.addressesDescription}><div className="space-y-4">{addresses.fields.map((field, index) => <AddressCard key={field.id} form={form} index={index} title={index === 0 ? messages.customers.form.primaryAddress : interpolate(messages.customers.form.anotherAddress, { number: index + 1 })} onRemove={() => addresses.remove(index)} canRemove={addresses.fields.length > 1} disabled={isSubmitting} messages={messages} locale={locale} />)}<p className="text-sm text-destructive">{errorFor(form, "addresses", messages)}</p><Button type="button" variant="outline" onClick={() => addresses.append(emptyAddress())} disabled={isSubmitting}><Plus className="mr-2 size-4" />{messages.customers.form.addAddress}</Button></div></FormSection>
+    </div></div>
+    <div className="sticky bottom-0 border-t bg-background px-6 py-4"><div className="mx-auto flex max-w-3xl flex-col-reverse gap-3 sm:flex-row sm:justify-end"><Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>{messages.common.cancel}</Button><Button type="submit" disabled={isSubmitting}>{isSubmitting ? messages.customers.form.saving : messages.customers.form.saveCustomer}</Button></div></div>
+  </form></Form>;
 }
 
-function AddressCard({ form, index, title, onRemove, canRemove, disabled }: { form: UseFormReturn<CustomerEditorValues>; index: number; title: string; onRemove: () => void; canRemove: boolean; disabled?: boolean }) {
+function AddressCard({ form, index, title, onRemove, canRemove, disabled, messages, locale }: { form: UseFormReturn<CustomerEditorValues>; index: number; title: string; onRemove: () => void; canRemove: boolean; disabled?: boolean; messages: Messages; locale: Locale }) {
   const prefix = `addresses.${index}` as const;
   const purposes = form.watch(`${prefix}.purposes`);
+  const purposeLabels = { BUSINESS: messages.customers.form.businessPurpose, BILLING: messages.customers.form.billingPurpose, SHIPPING: messages.customers.form.shippingPurpose, OTHER: messages.customers.form.otherPurpose } as const;
   const hasPurpose = (purpose: keyof typeof purposeLabels) => purposes.some((item) => item.purpose === purpose);
-  const setPurposes = (next: CustomerEditorValues["addresses"][number]["purposes"]) => form.setValue(`${prefix}.purposes`, next, { shouldValidate: true });
-  const togglePurpose = (purpose: keyof typeof purposeLabels, checked: boolean) => setPurposes(checked ? [...purposes, { purpose, isPrimaryForPurpose: false }] : purposes.filter((item) => item.purpose !== purpose));
-  const setPrimary = (purpose: keyof typeof purposeLabels, checked: boolean) => {
-    const addresses = form.getValues("addresses").map((address, addressIndex) => ({
-      ...address,
-      purposes: address.purposes.map((assignment) => assignment.purpose === purpose ? { ...assignment, isPrimaryForPurpose: checked && addressIndex === index } : assignment),
-    }));
-    form.setValue("addresses", addresses, { shouldValidate: true });
-  };
-
-  return <div className="space-y-4 rounded-lg border bg-muted/20 p-4"><div className="flex items-center justify-between gap-3"><h4 className="text-sm font-medium">{title}</h4>{canRemove ? <Button type="button" variant="ghost" size="sm" onClick={onRemove} disabled={disabled}><Trash2 className="mr-2 size-4" />Eliminar</Button> : null}</div>
-    <div className="grid gap-4 sm:grid-cols-2"><CountryField form={form} name={`${prefix}.countryCode`} label="País" disabled={disabled} /><TextField form={form} name={`${prefix}.region`} label="Estado / provincia / región" disabled={disabled} /></div>
-    <div className="grid gap-4 sm:grid-cols-2"><TextField form={form} name={`${prefix}.city`} label="Ciudad" disabled={disabled} /><TextField form={form} name={`${prefix}.district`} label="Distrito / localidad" disabled={disabled} /></div>
-    <TextField form={form} name={`${prefix}.postalCode`} label="Código postal / ZIP" disabled={disabled} />
-    <TextField form={form} name={`${prefix}.addressLine1`} label="Dirección" disabled={disabled} />
-    <TextField form={form} name={`${prefix}.addressLine2`} label="Detalles adicionales" disabled={disabled} />
-    <div className="space-y-3 border-t pt-4"><p className="text-sm font-medium">Usos de esta dirección</p>{(Object.keys(purposeLabels) as Array<keyof typeof purposeLabels>).map((purpose) => <div key={purpose} className="flex flex-wrap items-center gap-4"><BooleanField label={purposeLabels[purpose]} checked={hasPurpose(purpose)} onChange={(checked) => togglePurpose(purpose, checked)} disabled={disabled} />{hasPurpose(purpose) ? <BooleanField label="Principal para este uso" checked={purposes.find((item) => item.purpose === purpose)?.isPrimaryForPurpose ?? false} onChange={(checked) => setPrimary(purpose, checked)} disabled={disabled} /> : null}</div>)}</div>
-  </div>;
+  const togglePurpose = (purpose: keyof typeof purposeLabels, checked: boolean) => form.setValue(`${prefix}.purposes`, checked ? [...purposes, { purpose, isPrimaryForPurpose: false }] : purposes.filter((item) => item.purpose !== purpose), { shouldValidate: true });
+  const setPrimary = (purpose: keyof typeof purposeLabels, checked: boolean) => form.setValue("addresses", form.getValues("addresses").map((address, addressIndex) => ({ ...address, purposes: address.purposes.map((assignment) => assignment.purpose === purpose ? { ...assignment, isPrimaryForPurpose: checked && addressIndex === index } : assignment) })), { shouldValidate: true });
+  return <div className="space-y-4 rounded-lg border bg-muted/20 p-4"><div className="flex items-center justify-between gap-3"><h4 className="text-sm font-medium">{title}</h4>{canRemove ? <Button type="button" variant="ghost" size="sm" onClick={onRemove} disabled={disabled}><Trash2 className="mr-2 size-4" />{messages.customers.form.remove}</Button> : null}</div><div className="grid gap-4 sm:grid-cols-2"><CountryField form={form} name={`${prefix}.countryCode`} label={messages.customers.country} disabled={disabled} messages={messages} locale={locale} /><TextField form={form} name={`${prefix}.region`} label={messages.customers.form.region} disabled={disabled} messages={messages} /></div><div className="grid gap-4 sm:grid-cols-2"><TextField form={form} name={`${prefix}.city`} label={messages.customers.form.city} disabled={disabled} messages={messages} /><TextField form={form} name={`${prefix}.district`} label={messages.customers.form.district} disabled={disabled} messages={messages} /></div><TextField form={form} name={`${prefix}.postalCode`} label={messages.customers.form.postalCode} disabled={disabled} messages={messages} /><TextField form={form} name={`${prefix}.addressLine1`} label={messages.customers.form.addressLine1} disabled={disabled} messages={messages} /><TextField form={form} name={`${prefix}.addressLine2`} label={messages.customers.form.addressLine2} disabled={disabled} messages={messages} /><div className="space-y-3 border-t pt-4"><p className="text-sm font-medium">{messages.customers.form.addressUses}</p>{(Object.keys(purposeLabels) as Array<keyof typeof purposeLabels>).map((purpose) => <div key={purpose} className="flex flex-wrap items-center gap-4"><BooleanField label={purposeLabels[purpose]} checked={hasPurpose(purpose)} onChange={(checked) => togglePurpose(purpose, checked)} disabled={disabled} />{hasPurpose(purpose) ? <BooleanField label={messages.customers.form.primaryForPurpose} checked={purposes.find((item) => item.purpose === purpose)?.isPrimaryForPurpose ?? false} onChange={(checked) => setPrimary(purpose, checked)} disabled={disabled} /> : null}</div>)}</div></div>;
 }
 
-function ContactCard({ title, children, onRemove, canRemove, disabled }: { title: string; children: React.ReactNode; onRemove: () => void; canRemove: boolean; disabled?: boolean }) {
-  return <div className="space-y-4 rounded-lg border p-4"><div className="flex items-center justify-between gap-3"><p className="text-sm font-medium">{title}</p>{canRemove ? <Button type="button" variant="ghost" size="sm" onClick={onRemove} disabled={disabled}><Trash2 className="mr-2 size-4" />Eliminar</Button> : null}</div>{children}</div>;
-}
-
-function BooleanField({ label, checked, onChange, disabled }: { label: string; checked: boolean; onChange: (checked: boolean) => void; disabled?: boolean }) {
-  return <label className="flex cursor-pointer items-center gap-2 text-sm"><Checkbox checked={checked} onCheckedChange={(value) => onChange(value === true)} disabled={disabled} />{label}</label>;
-}
-
+function ContactCard({ title, children, onRemove, canRemove, disabled, removeLabel }: { title: string; children: React.ReactNode; onRemove: () => void; canRemove: boolean; disabled?: boolean; removeLabel: string }) { return <div className="space-y-4 rounded-lg border p-4"><div className="flex items-center justify-between gap-3"><p className="text-sm font-medium">{title}</p>{canRemove ? <Button type="button" variant="ghost" size="sm" onClick={onRemove} disabled={disabled}><Trash2 className="mr-2 size-4" />{removeLabel}</Button> : null}</div>{children}</div>; }
+function BooleanField({ label, checked, onChange, disabled }: { label: string; checked: boolean; onChange: (checked: boolean) => void; disabled?: boolean }) { return <label className="flex cursor-pointer items-center gap-2 text-sm"><Checkbox checked={checked} onCheckedChange={(value) => onChange(value === true)} disabled={disabled} />{label}</label>; }
 function suggestedDisplayName(...parts: Array<string | undefined>) { return parts.map((part) => part?.trim()).filter((part): part is string => Boolean(part)).join(" ").replace(/\s+/g, " "); }
-function FormSection({ title, description, children }: { title: string; description: string; children: React.ReactNode }) { return <section className="space-y-4"><div><h3 className="font-semibold">{title}</h3><p className="text-muted-foreground mt-1 text-sm">{description}</p></div>{children}</section>; }
-function Field({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: React.ReactNode }) { return <div className="space-y-2"><label className="text-sm font-medium">{label}{required && <span className="text-destructive ml-1">*</span>}</label>{children}{error && <p className="text-destructive text-sm">{error}</p>}</div>; }
-function TextField({ form, name, label, required, disabled, type = "text", placeholder }: { form: UseFormReturn<CustomerEditorValues>; name: Path<CustomerEditorValues>; label: string; required?: boolean; disabled?: boolean; type?: string; placeholder?: string }) { return <Field label={label} required={required} error={errorFor(form, name)}><Input {...form.register(name)} type={type} placeholder={placeholder} disabled={disabled} /></Field>; }
-function CountryField({ form, name, label, disabled }: { form: UseFormReturn<CustomerEditorValues>; name: Path<CustomerEditorValues>; label: string; disabled?: boolean }) { return <Field label={label} error={errorFor(form, name)}><Select value={String(form.watch(name) ?? "")} onValueChange={(value) => form.setValue(name, value, { shouldValidate: true })} disabled={disabled}><SelectTrigger><SelectValue placeholder="Selecciona un país" /></SelectTrigger><SelectContent className="max-h-72">{COUNTRIES.map((country) => <SelectItem key={country.code} value={country.code}>{country.nameEs}</SelectItem>)}</SelectContent></Select></Field>; }
-function errorFor(form: UseFormReturn<CustomerEditorValues>, name: Path<CustomerEditorValues>): string | undefined { return form.getFieldState(name, form.formState).error?.message; }
+function FormSection({ title, description, children }: { title: string; description: string; children: React.ReactNode }) { return <section className="space-y-4"><div><h3 className="font-semibold">{title}</h3><p className="mt-1 text-sm text-muted-foreground">{description}</p></div>{children}</section>; }
+function Field({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: React.ReactNode }) { return <div className="space-y-2"><label className="text-sm font-medium">{label}{required && <span className="ml-1 text-destructive">*</span>}</label>{children}{error && <p className="text-sm text-destructive">{error}</p>}</div>; }
+function TextField({ form, name, label, required, disabled, type = "text", placeholder, messages }: { form: UseFormReturn<CustomerEditorValues>; name: Path<CustomerEditorValues>; label: string; required?: boolean; disabled?: boolean; type?: string; placeholder?: string; messages: Messages }) { return <Field label={label} required={required} error={errorFor(form, name, messages)}><Input {...form.register(name)} type={type} placeholder={placeholder} disabled={disabled} /></Field>; }
+function CountryField({ form, name, label, disabled, messages, locale }: { form: UseFormReturn<CustomerEditorValues>; name: Path<CustomerEditorValues>; label: string; disabled?: boolean; messages: Messages; locale: Locale }) { return <Field label={label} error={errorFor(form, name, messages)}><Select value={String(form.watch(name) ?? "")} onValueChange={(value) => form.setValue(name, value, { shouldValidate: true })} disabled={disabled}><SelectTrigger><SelectValue placeholder={messages.customers.form.selectCountry} /></SelectTrigger><SelectContent className="max-h-72">{COUNTRIES.map((country) => <SelectItem key={country.code} value={country.code}>{getCountryName(country.code, locale)}</SelectItem>)}</SelectContent></Select></Field>; }
+function errorFor(form: UseFormReturn<CustomerEditorValues>, name: Path<CustomerEditorValues>, messages: Messages): string | undefined { const error = form.getFieldState(name, form.formState).error?.message; return error && error in messages.customers.validation ? messages.customers.validation[error as keyof typeof messages.customers.validation] : error; }
